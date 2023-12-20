@@ -1,0 +1,34 @@
+package:
+  name: "fugazey"
+  version: "0.1.0"
+
+source:
+  # Relative path to the parent directory.
+  path: ..
+
+requirements:
+  host:
+    - python
+    - setuptools
+  build:
+    - python {{ python }}
+  run:
+    - python
+    # dependencies are defined in setup.py
+    {% for dep in data['install_requires'] %}
+    - {{ dep.lower() }}
+    {% endfor %}
+    # - dependencyPackage1
+    # - dependencyPackage2
+    # ...
+
+about:
+  home: https://github.com/openSourcerer9000/fugazey
+  license: MIT license
+  license_familY: MIT license
+  license_file: LICENSE
+  summary: "Webcam-only, free, open source, and reliable gaze tracking solution for hands-free mouse"
+
+extra:
+  recipe-maintainers:
+    - openSourcerer9000
