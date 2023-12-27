@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd, numpy as np
 import  xarray as xr
 import pyautogui
-from pyautogui import moveTo, position
+from pyautogui import moveTo
 pyautogui.FAILSAFE = False
 from pathlib import Path
 import numpy as np
@@ -13,16 +13,12 @@ import torch.nn as nn
 from skorch import NeuralNetRegressor
 import pickle
 import joblib
-import json
 print('libs loaded')
 
-print(f'If pic all washed out, on ffmpeg settings, turn gain up all the way, and then down all the way... can be fixed from opencv?',
-    'ffmpeg -f dshow -show_video_device_dialog true -i video="c922 Pro Stream Webcam"')
-
-modelname = 'current'
-crop = False
+modelname = 'scaled0'
+nmarks = 478
 toppts = np.array([  1, 3, 4, 5, 6, 7, 8, 9, 10, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 34, 35, 36, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 59, 60, 63, 64, 65, 66, 67, 68, 69, 70, 71, 75, 79, 93, 94, 100, 101, 102, 103, 104, 105, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 133, 134, 137, 139, 141, 142, 143, 144, 145, 151, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 166, 168, 173, 174, 188, 189, 190, 193, 195, 196, 197, 198, 209, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 263, 264, 265, 266, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 289, 290, 293, 294, 295, 296, 297, 298, 299, 300, 301, 305, 309, 323, 328, 329, 330, 331, 332, 333, 334, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 362, 363, 366, 368, 370, 371, 372, 373, 374, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 392, 398, 399, 412, 413, 414, 417, 419, 420, 425, 429, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477])
-nmarks = len(toppts) if crop else 478
+nmarks = len(toppts)
 
 mdlpth = Path(r'C:\app\fugazey\fugazey\models')
 # netpkl=mdlpth/'scaled-val272.pkl'
@@ -58,20 +54,16 @@ if scaler_gz:
     scaler = joblib.load(scaler_gz)
 print('models loaded')
 
-camname = "c922 Pro Stream Webcam"
 webcam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
-dscale = 1
-camx,camy = 1920/dscale,1080/dscale
-webcam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+camx,camy = 1920,1080
 webcam.set(cv2.CAP_PROP_FRAME_WIDTH, camx )
 webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, camy)
-webcam.set(cv2.CAP_PROP_EXPOSURE, 0.1)
 
-xcenter=int(camx/2/dscale)
-ycenter=int(660/dscale)
-yoffset = int(325/dscale)
-xoffset = int(450/dscale)
+xcenter=int(camx/2)
+ycenter=660
+yoffset = 325
+xoffset = 450
 
 resx,resy = pyautogui.size()
 screen_w, screen_h = resx,resy
@@ -88,13 +80,13 @@ for tri in range(50):
 else:
     assert False, 'ERROR, could not init webcam! make sure the permissions are on in settings, and a webcam is active'
 
-# shaep = (478,3) # 3D , 478 landmarks from mp
+# shaep = (nmarks,3) # 3D , 478 landmarks from mp
 def snap(plotface=True):
 # while True:
     shaep = (478,3) # 3D , 478 landmarks from mp
     _, frame = webcam.read()
 
-    # frame = frame[ycenter-yoffset:ycenter+yoffset,xcenter-xoffset:xcenter+xoffset]
+    frame = frame[ycenter-yoffset:ycenter+yoffset,xcenter-xoffset:xcenter+xoffset]
     frame = cv2.flip(frame, 1)
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     output = face_mesh.process(rgb_frame)
@@ -106,7 +98,7 @@ def snap(plotface=True):
 
         # print('len',len(landmarks))
         pts = np.array([[landmark.x,landmark.y,landmark.z] for landmark in landmarks])
-        # assert pts.shape==shaep, pts.shape
+        assert pts.shape==shaep, pts.shape
 
         # eye pos ----
         # pupl = 473
@@ -139,6 +131,7 @@ def snap(plotface=True):
     return pts
 
 def getxyz0(da):
+    '''this happens BEFORE cropping out any pts'''
     xyz0 = xr.concat([
         da.mean(dim=['s','mark']).sel(crd=['x','y']) ,
         da.min(dim=['s','mark']).sel(crd=['z'])
@@ -213,9 +206,6 @@ def nodfactor(pts,xyz0):
     
     '''
     pts = pts - xyz0
-
-    assert not np.any(np.isnan(pts.values)), pts
-
     x = pts.transpose('crd','mark')
     # assert x.shape == shaep[::-1], x.shape
     xscaled = scaler.transform(x.values)
@@ -227,10 +217,8 @@ def nodfactor(pts,xyz0):
     ))
 
     pred = net.predict(xtns)
+    # print(pred)
     pos1 = np.array(pred[0])
-
-    assert not np.any(np.isnan(pos1)), pos1
-
     # print(pos1)
     return pos1
 
@@ -248,102 +236,100 @@ def listEqual(alist):
     return all(alist[i+1] == alist[0] for i in range(len(alist)-1))
 
 
-def gather(nlines = 12,npts = 25,dt=0.05,margin=5):
-    '''margin: px on edge of screen to leave out'''
+# def gather(nlines = 12,npts = 25,dt=0.05,margin=5):
+#     '''margin: px on edge of screen to leave out'''
 
-    data = []
+#     data = []
 
-    xrng = np.linspace(0+margin,resx-margin,npts)
-    # start from bottom to avoid neck strain
-    for y in np.linspace(0+margin,resy-margin,nlines)[::-1]:
-        moveTo(xrng[0],y,1)
-        for x in xrng:
-            moveTo(x,y,dt,_pause=False)
-            data += [ (snap() , np.array([x,y])) ]
-        xrng = xrng[::-1]
+#     xrng = np.linspace(0+margin,resx-margin,npts)
+#     # start from bottom to avoid neck strain
+#     for y in np.linspace(0+margin,resy-margin,nlines)[::-1]:
+#         moveTo(xrng[0],y,1)
+#         for x in xrng:
+#             moveTo(x,y,dt,_pause=False)
+#             data += [ (snap() , np.array([x,y])) ]
+#         xrng = xrng[::-1]
 
-    yrng = np.linspace(0+margin,resx-margin,npts)
-    for x in np.linspace(0+margin,resx-margin,npts):
-        moveTo(x,yrng[0],dt*3)
-        for y in yrng:
-            moveTo(x,y,dt,_pause=False)
-            data += [ (snap() , np.array([x,y])) ]
-        yrng = yrng[::-1]
+#     yrng = np.linspace(0+margin,resx-margin,npts)
+#     for x in np.linspace(0+margin,resx-margin,npts):
+#         moveTo(x,yrng[0],dt*3)
+#         for y in yrng:
+#             moveTo(x,y,dt,_pause=False)
+#             data += [ (snap() , np.array([x,y])) ]
+#         yrng = yrng[::-1]
 
-    # print(data)
+#     # print(data)
 
-    # shuffling train + test
-    random.shuffle(data)
-    # cutoff = int(len(data)*.8)
-    # train,test = data[:cutoff],data[cutoff:]
+#     # shuffling train + test
+#     random.shuffle(data)
+#     # cutoff = int(len(data)*.8)
+#     # train,test = data[:cutoff],data[cutoff:]
 
-    assert listEqual([d[0].shape for d in data]), [d[0].shape for d in data]
+#     assert listEqual([d[0].shape for d in data]), [d[0].shape for d in data]
 
-    fullx = np.stack([d[0] for d in data])
-    fully = np.stack([d[1] for d in data])
+#     fullx = np.stack([d[0] for d in data])
+#     fully = np.stack([d[1] for d in data])
 
-    # trainx = np.stack([d[0] for d in train])
-    # trainy = np.stack([d[1] for d in train])
+#     # trainx = np.stack([d[0] for d in train])
+#     # trainy = np.stack([d[1] for d in train])
     
-    # testx = np.stack([d[0] for d in test])
-    # testy = np.stack([d[1] for d in test])
+#     # testx = np.stack([d[0] for d in test])
+#     # testy = np.stack([d[1] for d in test])
 
-    print(f'BOUNCING TO {pth}')
+#     print(f'BOUNCING TO {pth}')
 
-    np.save(pth/'fullx.npy', fullx)
-    np.save(pth/'fully.npy', fully)
-    dimz = ('s','mark','crd')
+#     np.save(pth/'fullx.npy', fullx)
+#     np.save(pth/'fully.npy', fully)
+#     dimz = ('s','mark','crd')
 
-    fullx = xr.DataArray(fullx,dims=dimz)
-    fullx['crd'] = ['x','y','z']
-    #  # transform to put the origin on the mean face pt position xy, and the closest depth
-    #  this array of 3 pts may be calibrated to new user/position
-    #  this is part of preprocessing before fed to model
-    #  # will need to be further scaled for keras but OK
-    xyz0 = xr.concat([
-        fullx.mean(dim=['s','mark']).sel(crd=['x','y']) ,
-        fullx.min(dim=['s','mark']).sel(crd=['z'])
-    ],dim='crd')
-    xyz0
-    normx = fullx - xyz0
-    normx
-    # only for training data:
-    assert all(np.isclose(
-        normx.mean(dim=['s','mark']).sel(crd=['x','y']).values,
-        np.array([0,0])
-    )), normx.mean(dim=['s','mark']).sel(crd=['x','y'])
-    assert np.isclose( normx.min(dim=['s','mark']).sel(crd=['z']).values[0] , 0 ), \
-        normx.min(dim=['s','mark']).sel(crd=['z'])
+#     fullx = xr.DataArray(fullx,dims=dimz)
+#     fullx['crd'] = ['x','y','z']
+#     #  # transform to put the origin on the mean face pt position xy, and the closest depth
+#     #  this array of 3 pts may be calibrated to new user/position
+#     #  this is part of preprocessing before fed to model
+#     #  # will need to be further scaled for keras but OK
+#     xyz0 = xr.concat([
+#         fullx.mean(dim=['s','mark']).sel(crd=['x','y']) ,
+#         fullx.min(dim=['s','mark']).sel(crd=['z'])
+#     ],dim='crd')
+#     xyz0
+#     normx = fullx - xyz0
+#     normx
+#     # only for training data:
+#     assert all(np.isclose(
+#         normx.mean(dim=['s','mark']).sel(crd=['x','y']).values,
+#         np.array([0,0])
+#     )), normx.mean(dim=['s','mark']).sel(crd=['x','y'])
+#     assert np.isclose( normx.min(dim=['s','mark']).sel(crd=['z']).values[0] , 0 ), \
+#         normx.min(dim=['s','mark']).sel(crd=['z'])
 
-    assert fully.shape[-1]==2, f'should represent mouse x,y. hsape: {fully.shape}'
-    fully = xr.DataArray(fully,dims = ('s','pos'))
-    fully
-    fully.name = 'mouse'
-    fully = fully.to_dataset()
-    fully
-    fullx.name = 'head'
-    fullx = fullx.to_dataset()
-    fullx
-    fullxy = xr.merge([fullx,fully])
-    fullxy
-    fullxy.to_netcdf(pth/'fullxy.nc')
-    print('done!')
-    return fullxy
-    # np.save(pth/'trainx.npy', trainx)
-    # np.save(pth/'trainy.npy', trainy)
-    # np.save(pth/'testx.npy', testx)
-    # np.save(pth/'testy.npy', testy)
+#     assert fully.shape[-1]==2, f'should represent mouse x,y. hsape: {fully.shape}'
+#     fully = xr.DataArray(fully,dims = ('s','pos'))
+#     fully
+#     fully.name = 'mouse'
+#     fully = fully.to_dataset()
+#     fully
+#     fullx.name = 'head'
+#     fullx = fullx.to_dataset()
+#     fullx
+#     fullxy = xr.merge([fullx,fully])
+#     fullxy
+#     fullxy.to_netcdf(pth/'fullxy.nc')
+#     print('done!')
+#     return fullxy
+#     # np.save(pth/'trainx.npy', trainx)
+#     # np.save(pth/'trainy.npy', trainy)
+#     # np.save(pth/'testx.npy', testx)
+#     # np.save(pth/'testy.npy', testy)
 
 if __name__=='__main__':
     xyz0 = calibxyz0(nframes=5)
-    print(xyz0.values)
     print('calibrated to your current position')
 
     pos0 = np.array([resx/2,resy/2])
     rpos0 = np.array([0,0]) # relative
     tpos0 = pos0.copy()
     pupilcache = []
-    ptscache = []
 
     # settings -----------------------------------------------------------
     def on_trackbar_change(coarsebuffer):
@@ -356,68 +342,48 @@ if __name__=='__main__':
     # Initial value for coarsebuffer
     coarsebuffer = 20
     dt = 0#.05
-    cachelen = 3
-    eyescale = 1000
+    cachelen = 1
+    eyescale = 100
     # Create a trackbar. Arguments: trackbar name, window name, value range and callback function
-    cv2.createTrackbar('coarse buffer', 'ur face', 3, 30, on_trackbar_change)
-    cv2.createTrackbar('eye scale', 'ur face', 1200, 8000, on_trackbar_change)
-    cv2.createTrackbar('lag', 'ur face', 1, 20, on_trackbar_change)
-    cv2.createTrackbar('cache len', 'ur face', 3, 30, on_trackbar_change)
-    
-    # cv2.createTrackbar('coarse buffer', 'ur face', 15, 30, on_trackbar_change)
-    # cv2.createTrackbar('eye scale', 'ur face', 2000, 8000, on_trackbar_change)
-    # cv2.createTrackbar('lag', 'ur face', 0, 20, on_trackbar_change)
-    # cv2.createTrackbar('cache len', 'ur face', 3, 30, on_trackbar_change)
+    cv2.createTrackbar('coarse buffer', 'ur face', 15, 30, on_trackbar_change)
+    cv2.createTrackbar('eye scale', 'ur face', 200, 2000, on_trackbar_change)
+    cv2.createTrackbar('lag', 'ur face', 0, 20, on_trackbar_change)
+    cv2.createTrackbar('cache len', 'ur face', 1, 30, on_trackbar_change)
     # Dummy image just to have something to show in the window
     # You would replace this part with your video capture or sequence
     # dummy_frame = np.zeros((400, 400, 3), np.uint8)
-    pipe = Path(r'C:\Users\seanm\AppData\Local\Temp')/'pipe.json'
     while True:
         # Check for trackbar position update
         coarsebuffer = cv2.getTrackbarPos('coarse buffer', 'ur face')
-        dt = cv2.getTrackbarPos('lag', 'ur face')/50
+        dt = cv2.getTrackbarPos('lag', 'ur face')/10
         cachelen = cv2.getTrackbarPos('cache len', 'ur face')
         eyescale = cv2.getTrackbarPos('eye scale', 'ur face')
         # settings -----------------------------------------------------------
 
         pts = snap()
-        if crop:
-            pts = pts.isel(mark=toppts)
-
-        ptscache += [ pts.copy() ]
-        if len(ptscache)>cachelen:
-            ptscache = ptscache[-cachelen:]
-        pts = xr.concat(ptscache,dim='frame').mean(dim='frame')
         
-        # coarse
-        pos1 = nodfactor(pts,xyz0)
-        # 90% of the way there
-        dist = np.sqrt(np.sum((pos1-pos0)**2))
-        if dist < coarsebuffer:
-            pos1 = pos0.copy() # nothin
-        else:
-            # print('pos changed')
-            pos1 = interp(pos0,pos1,0.95)
-
-        # turn off pos abs
-        # pos1 = np.array([resx/2,resy/2])
-
-        # mouthopen = pts.isel({'mark':slice(13,15)}).sel({'crd':'y'}).diff(dim='mark').values[0]
-        # mouthopen = mouthopen/0.05 # 0-1
+        mouthopen = pts.isel({'mark':slice(13,15)}).sel({'crd':'y'}).diff(dim='mark').values[0]
+        mouthopen = mouthopen/0.05 # 0-1
         # print(mouthopen)
 
-        # fine
-        
-        # pupl = 473
+        # mouth joystick
+        # pupl = 13
+        # L = 308
+        # R = 78
+        # lt,rt,pupil = [ pts.isel({'mark':idx}).sel(crd=['x','y']).values for idx in (L,R,pupl) ]
+        # og = np.mean((lt,rt), axis=0)
+        # w = rt[0] - lt[0]
+        # h = w*resy/resx # your eye given same aspect ratio of screen
+        # # posnorm between -1:1 for x and y if you could move your eye all the way to the edge
+        # posnorm = pupil - og
+        # posnorm[0] = posnorm[0]/(2*w)
+        # posnorm[1] = posnorm[1]/(2*h)
+
+        # fine - these indices are on the uncropped pts
+        pupl = 473
         # pupil = pts.isel({'mark':pupl}).values
-        if crop:
-            #avg of 2 pupils
-            pupil = pts.isel({'mark':[292,287]}).mean(dim='mark').values
-        else:
-            #avg of 2 pupils
-            pupil = pts.isel({'mark':[468,473]}).mean(dim='mark').values
-            # avg of pupil and 4 iris control pts for less jitter from grainy webcam??
-            # pupil = pts.isel({'mark':slice(473,478)}).mean(dim='mark').values
+        # avg of pupil and 4 iris control pts for less jitter from grainy webcam??
+        pupil = pts.isel({'mark':slice(473,478)}).mean(dim='mark').values
         # mean of ALL pts!? not with mouth
         # pupil = pts.mean(dim='mark').values
         # pupil ranges from 0-1, now -1 to 1
@@ -432,28 +398,40 @@ if __name__=='__main__':
         #avg the last cachelen trail of jitters to smooth it?
         rpos1 = np.mean(pupilcache,axis=0) * eyescale
         # rpos1 = pupil * eyescale #x,y
+        # rpos1 = posnorm * eyescale # mouth 
+
         rdist = np.sqrt(np.sum((rpos1-rpos0)**2))
-        if dist < coarsebuffer*2:
+        if rdist < coarsebuffer*2:
             # reduce jitter
             # rpos1 = interp(rpos0,rpos1,0.5 * (1-mouthopen))
             rpos1 = interp(rpos0,rpos1,0.7)
             # otherwise, move straight there to avoid lag when going across the screen
 
+        # coarse
+        # if 'crop' in modelname:
+        #     # remove mouth pts
+        #     pts = pts.isel(mark=toppts)
+        pos1 = nodfactor(pts,xyz0)
+        # 90% of the way there
+        dist = np.sqrt(np.sum((pos1-pos0)**2))
+        if dist < coarsebuffer:
+            pos1 = pos0.copy() # nothin
+        else:
+            # print('pos changed')
+            pos1 = interp(pos0,pos1,0.95)
+            # print('interp',pos1)
+
+        # print(pos1)
+        # print(rpos1)
+        # turn off pos abs
+        # pos1 = np.array([resx/2,resy/2])
         # tpos1 = pos1.copy()# just abs
         tpos1 = pos1 + rpos1
-
-        # normalize to zoom settings
-        cfg = json.load(open(pipe))
-        if cfg['z'] > 1:
-            npos = tpos1/cfg['z']
-            npos[0] = npos[0] - (resx/2)/cfg['z'] + cfg['x']
-            npos[1] = npos[1] - (resy/2)/cfg['z'] + cfg['y']
+        if np.any(np.isnan(tpos1)):
+            print(f'NAN??? {tpos1}')
+            # assert False
         else:
-            npos = tpos1
-
-        moveTo(*npos,dt)
-
-
+            moveTo(*tpos1,dt)
         tpos0 = tpos1.copy()
         pos0  = pos1.copy()
         rpos0 = rpos1.copy()
