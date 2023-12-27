@@ -1,0 +1,1 @@
+add this in your talon voice user folder to use voice commands for clicking/zooming in alongside the gaze tracking mouse position
