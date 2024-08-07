@@ -16,7 +16,7 @@ import joblib
 import json
 print('libs loaded')
 
-print(f'If pic all washed out, on ffmpeg settings, turn gain up all the way, and then down all the way... can be fixed from opencv?',
+print(f'If pic all washed out, on ffmpeg settings, turn gain up all the way, and then down all the way. Or adjust the exposure to around -7... can be fixed from opencv?\n',
     'ffmpeg -f dshow -show_video_device_dialog true -i video="c922 Pro Stream Webcam"')
 
 modelname = 'current'
@@ -63,10 +63,13 @@ webcam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 dscale = 1
 camx,camy = 1920/dscale,1080/dscale
+# we capture the first frame for the camera to adjust itself to the exposure
+ret_val , cap_for_exposure = webcam.read()
 webcam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 webcam.set(cv2.CAP_PROP_FRAME_WIDTH, camx )
 webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, camy)
-webcam.set(cv2.CAP_PROP_EXPOSURE, 0.1)
+webcam.set(cv2.CAP_PROP_EXPOSURE, 0.25)
+webcam.set(cv2.CAP_PROP_EXPOSURE, 0.01)
 
 xcenter=int(camx/2/dscale)
 ycenter=int(660/dscale)
@@ -443,6 +446,10 @@ if __name__=='__main__':
         tpos1 = pos1 + rpos1
 
         # normalize to zoom settings
+        if not pipe.exists():
+            cfg = {'z':1}
+            with open(pipe, 'w') as outfile:
+                json.dump(cfg, outfile)
         cfg = json.load(open(pipe))
         if cfg['z'] > 1:
             npos = tpos1/cfg['z']
@@ -450,6 +457,7 @@ if __name__=='__main__':
             npos[1] = npos[1] - (resy/2)/cfg['z'] + cfg['y']
         else:
             npos = tpos1
+        # npos = tpos1
 
         moveTo(*npos,dt)
 

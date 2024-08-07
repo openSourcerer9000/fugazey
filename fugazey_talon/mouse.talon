@@ -1,7 +1,8 @@
-(in):
+(zoom|zoo):
     user.win_zoom_in()
-# (talk|tok|thought):
-(tick|tip|thick):
+# (talk|tok|tock|thought|took|tuck):
+# (cha|chai|chap|chat|jack)
+(tick|tip|thick|flicker|clicker|liquor):
     mouse_click(0)
     #user.grid_close()
     user.mouse_drag_end()
@@ -35,7 +36,7 @@ mid click:
     key("{modifiers}:up")
     # close the mouse grid
     #user.grid_close()
-(dub click | duke):
+(double|bubble|dumbell|gumbo|gum|dumb|dump):
     mouse_click()
     mouse_click()
     # close the mouse grid

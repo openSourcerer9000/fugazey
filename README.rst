@@ -17,6 +17,7 @@ fugazey
 
 
 Webcam-only, free, open source, and reliable gaze tracking solution for hands-free mouse
+Run train.py to train your model on your face, and run.py to use the software with your custom AI model.
 
 
 * Free software: MIT license

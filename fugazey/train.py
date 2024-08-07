@@ -37,10 +37,13 @@ webcam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 dscale = 1
 camx,camy = 1920/dscale,1080/dscale
+# we capture the first frame for the camera to adjust itself to the exposure
+ret_val , cap_for_exposure = webcam.read()
 webcam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 webcam.set(cv2.CAP_PROP_FRAME_WIDTH, camx )
 webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, camy)
-webcam.set(cv2.CAP_PROP_EXPOSURE, 0.1)
+webcam.set(cv2.CAP_PROP_EXPOSURE, 0.25)
+webcam.set(cv2.CAP_PROP_EXPOSURE, 0.01)
 
 xcenter=int(camx/2)
 ycenter=660
@@ -489,11 +492,14 @@ def soultrain(fullxy=None, nm='current',crop=False):
     print(f"Trained model and scaler saved to {mdlpth}/f'{nm}.safetensors' and  {mdlpth}/f'{nm}.gz'")
 
 if __name__=='__main__':
-    # fullxy = gather(
-    #     # dt=0
-    # )
-    soultrain()
-    # soultrain(fullxy,nm='current')
+    snap(plotface=True)
+    input('Hit enter once youre satisfied with settings')
+    fullxy = gather(
+        # dt=0
+    )
+    soultrain(fullxy,nm='current')
+
+    # soultrain()
 
 webcam.release()
 cv2.destroyAllWindows()
