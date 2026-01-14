@@ -32,26 +32,53 @@ pyautogui.FAILSAFE = False
 from pathlib import Path
 import numpy as np
 
+import cv2
+import pyautogui
+from screeninfo import get_monitors
+
+# --- Choose monitor ---
+# 0 = primary, 1 = top
+monitor_index = 0
+
+# Get all monitors sorted by vertical position (y)
+monitors = sorted(get_monitors(), key=lambda m: m.y)
+
+# Safety check: if index is too high, clamp to last monitor
+if monitor_index >= len(monitors):
+    monitor_index = len(monitors) - 1
+
+chosen_monitor = monitors[monitor_index]
+
+print(f"Using monitor {monitor_index}: {chosen_monitor.name}, "
+      f"origin=({chosen_monitor.x},{chosen_monitor.y}), "
+      f"res={chosen_monitor.width}x{chosen_monitor.height}")
+
 camname = "c922 Pro Stream Webcam"
 webcam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 dscale = 1
-camx,camy = 1920/dscale,1080/dscale
-# we capture the first frame for the camera to adjust itself to the exposure
-ret_val , cap_for_exposure = webcam.read()
+camx, camy = 1920/dscale, 1080/dscale
+
+# Warm up camera
+ret_val, cap_for_exposure = webcam.read()
 webcam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-webcam.set(cv2.CAP_PROP_FRAME_WIDTH, camx )
+webcam.set(cv2.CAP_PROP_FRAME_WIDTH, camx)
 webcam.set(cv2.CAP_PROP_FRAME_HEIGHT, camy)
 webcam.set(cv2.CAP_PROP_EXPOSURE, 0.25)
 webcam.set(cv2.CAP_PROP_EXPOSURE, 0.01)
 
-xcenter=int(camx/2)
-ycenter=660
+# Coordinates adjusted for chosen monitor
+xcenter = chosen_monitor.x + int(camx / 2)
+ycenter = chosen_monitor.y + 660
 yoffset = 325
 xoffset = 450
 
-resx,resy = pyautogui.size()
-screen_w, screen_h = resx,resy
+# Full desktop size
+resx, resy = pyautogui.size()
+screen_w, screen_h = resx, resy
+
+print(f"Coordinates center: ({xcenter}, {ycenter})")
+
 
 # pth = Path.cwd().parent/'data'
 # pth.mkdir(parents=True,exist_ok=True)

@@ -19,6 +19,9 @@ fugazey
 Webcam-only, free, open source, and reliable gaze tracking solution for hands-free mouse
 Run train.py to train your model on your face, and run.py to use the software with your custom AI model.
 
+As a companion to Talon Voice:
+add fugazey_talon to your talon voice user folder to use voice commands for clicking/zooming in alongside the gaze tracking mouse position
+voice commands: flicker: left click, righty: right click, drag: click and hold, mid click: middle click, 
 
 * Free software: MIT license
 * Documentation: https://fugazey.readthedocs.io.
